@@ -1,0 +1,171 @@
+-- War Tycoon PRO Script
+-- Feito para Executor Delta | Interface Orion UI
+-- Funções: Auto Farm, Coleta de Itens, Auto Comprar, Teleporte, Estatísticas, Chat Automático
+
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local Window = OrionLib:MakeWindow({Name = "⚔️ War Tycoon PRO Hub", HidePremium = false, SaveConfig = false, IntroEnabled = false})
+
+-- VARIÁVEIS
+local autoFarm = false
+local autoOil = false
+local autoToolbox = false
+local autoDropper = false
+local stats = {kills = 0, money = 0, startTime = tick()}
+
+-- FUNÇÕES GERAIS
+function sendChat(msg)
+    game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(msg, "All")
+end
+
+function getPlayerTycoon()
+    for _, v in pairs(workspace.Tycoons:GetChildren()) do
+        if v:FindFirstChild("Owner") and v.Owner.Value == game.Players.LocalPlayer then
+            return v
+        end
+    end
+end
+
+function autoCollectOil()
+    while autoOil and task.wait(1) do
+        for _, oil in pairs(workspace:GetDescendants()) do
+            if oil.Name == "OilBarrel" and oil:IsA("Part") then
+                game.Players.LocalPlayer.Character:PivotTo(CFrame.new(oil.Position))
+                wait(0.5)
+                firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, oil, 0)
+                firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, oil, 1)
+            end
+        end
+    end
+end
+
+function autoCollectToolboxes()
+    while autoToolbox and task.wait(1) do
+        for _, tb in pairs(workspace:GetDescendants()) do
+            if tb.Name == "Toolbox" and tb:IsA("Part") then
+                game.Players.LocalPlayer.Character:PivotTo(CFrame.new(tb.Position))
+                wait(0.5)
+                firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, tb, 0)
+                firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, tb, 1)
+            end
+        end
+    end
+end
+
+function startAutoFarm()
+    while autoFarm and task.wait(1) do
+        local enemies = workspace:FindFirstChild("Enemies")
+        if enemies then
+            for _, enemy in pairs(enemies:GetChildren()) do
+                if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChild("Humanoid") then
+                    local char = game.Players.LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        char:PivotTo(enemy.HumanoidRootPart.CFrame + Vector3.new(0, 0, 2))
+                        wait(0.3)
+                        enemy.Humanoid:TakeDamage(999)
+                        stats.kills += 1
+                    end
+                end
+            end
+        end
+    end
+end
+
+function startAutoBuyDroppers()
+    local tycoon = getPlayerTycoon()
+    if not tycoon then return end
+
+    while autoDropper and task.wait(1) do
+        for _, part in pairs(tycoon.Buttons:GetDescendants()) do
+            if part:IsA("Part") and part.Name == "Head" then
+                firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, part, 0)
+                firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, part, 1)
+            end
+        end
+    end
+end
+
+-- ABA: FARM
+local FarmTab = Window:MakeTab({Name = "💰 Farm", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+
+FarmTab:AddToggle({
+    Name = "Auto Farm Enemies",
+    Default = false,
+    Callback = function(val)
+        autoFarm = val
+        if val then startAutoFarm() end
+    end
+})
+
+FarmTab:AddToggle({
+    Name = "Auto Comprar Dropper",
+    Default = false,
+    Callback = function(val)
+        autoDropper = val
+        if val then startAutoBuyDroppers() end
+    end
+})
+
+-- ABA: COLETA
+local ColetaTab = Window:MakeTab({Name = "📦 Coleta", Icon = "rbxassetid://6031075938", PremiumOnly = false})
+
+ColetaTab:AddToggle({
+    Name = "Coletar Barris de Óleo",
+    Default = false,
+    Callback = function(val)
+        autoOil = val
+        if val then autoCollectOil() end
+    end
+})
+
+ColetaTab:AddToggle({
+    Name = "Coletar Caixas de Ferramentas",
+    Default = false,
+    Callback = function(val)
+        autoToolbox = val
+        if val then autoCollectToolboxes() end
+    end
+})
+
+-- ABA: TELEPORTES
+local TeleportTab = Window:MakeTab({Name = "🚀 Teleportes", Icon = "rbxassetid://4483362458", PremiumOnly = false})
+
+TeleportTab:AddButton({
+    Name = "Ir para sua Base",
+    Callback = function()
+        local tycoon = getPlayerTycoon()
+        if tycoon then
+            game.Players.LocalPlayer.Character:PivotTo(tycoon.Spawn.CFrame)
+        end
+    end
+})
+
+-- ABA: EXTRAS
+local ExtrasTab = Window:MakeTab({Name = "🧪 Extras", Icon = "rbxassetid://6034977836", PremiumOnly = false})
+
+ExtrasTab:AddButton({
+    Name = "Mensagem: GG 😎",
+    Callback = function()
+        sendChat("GG 😎")
+    end
+})
+
+ExtrasTab:AddButton({
+    Name = "Mensagem: Farming ativo!",
+    Callback = function()
+        sendChat("💰 Farming automático ativo!")
+    end
+})
+
+ExtrasTab:AddButton({
+    Name = "Mostrar Estatísticas",
+    Callback = function()
+        local tempo = math.floor(tick() - stats.startTime)
+        OrionLib:MakeNotification({
+            Name = "Estatísticas",
+            Content = "Kills: "..stats.kills.." | Tempo: "..tempo.."s",
+            Time = 5
+        })
+    end
+})
+
+OrionLib:Init()
